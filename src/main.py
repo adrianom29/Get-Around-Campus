@@ -13,6 +13,7 @@ def build_graph():      #reads data from csv files, creates objects
     edges_path = os.path.join(base_path, "../csv/YU-edges.csv")
 
     with open(nodes_path, "r") as f:
+        next(f)
         for line in f:
             object = line.strip().split(",")
             new_node = Node(int(object[0]), float(object[1]), float(object[2]))
@@ -20,6 +21,7 @@ def build_graph():      #reads data from csv files, creates objects
             G.add_node(int(object[0]), data=new_node)
 
     with open(edges_path, "r") as f:
+        next(f)
         for line in f:
             object = line.split(",")
             new_edge = Edge(int(object[0]), int(object[1]), float(object[2]))
