@@ -1,9 +1,11 @@
 import os
-from Objects import Node, Edge, InvalidNodeIDError
+from Objects import Node, Edge, InvalidNodeIDError, NoNodeInRadiusError
 import networkx as nx
 import heapq
+from collections import defaultdict
+import math
 
-def build_graph():      #reads data from csv files, creates objects 
+def build():      #reads data from csv files, creates objects 
     G = nx.Graph()
     nodes = []
     edges = []
@@ -27,8 +29,16 @@ def build_graph():      #reads data from csv files, creates objects
             new_edge = Edge(int(object[0]), int(object[1]), float(object[2]))
             edges.append(new_edge)
             G.add_edge(int(object[0]), int(object[1]), weight=float(object[2]))  
-          
-    return G, nodes, edges
+
+    coordinateGrid = defaultdict(list)
+    for node in nodes:
+        key = getGridKey(node.getY(), node.getX())
+        coordinateGrid[key].append(node)
+    print(f"Grid built with {len(coordinateGrid)} active cells.")
+    return G, nodes, edges, coordinateGrid
+
+def getGridKey(x, y):
+    return (math.floor(x / 0.001), math.floor(y / 0.001))
 
 def findNode(id):
     start = 0
@@ -81,11 +91,41 @@ def getShortestPath(start, end):
         current = previous[current]
     return path[::-1], totalDistance    #returns list of nodes in order of path from start node to end node
 
+def getNearestNode(y, x):       #y = latitude, x = longitude
+    gridX, gridY = getGridKey(y, x)
 
-graph, nodes, edges = build_graph()
+    closestNode = None
+    minDistance = float("inf")      #I know this looks like O(n^4) but its really not. (Actually way faster than linearly searching through thousands of nodes)
+    for radius in range(1,5):       #1 -> 4
+        found = False
+        for dx in range(-radius, radius +1):        #-4 -> 5
+            for dy in range(-radius, radius+1):     #-4 -> 5
+                cell = (gridX + dx, gridY + dy)
+                if cell in coordinateGrid:
+                    found = True
+                    for node in coordinateGrid[cell]:
+                        dSquared = (node.getX() - x)**2 + (node.getY() - y)**2
+                        if dSquared < minDistance:
+                            minDistance = dSquared
+                            closestNode = node
+        if found: break
+    if closestNode == None:
+        raise NoNodeInRadiusError(f"Given coordinates ({y}, {x}) is too far away from any node")
 
-path, distances = getShortestPath(35485240, 10845513120)
-print(path)
+    return closestNode
+
+graph, nodes, edges, coordinateGrid= build()
+
+try:  
+    n = getNearestNode(4.767657, -79.509253)
+    print(f"{n.getY()}, {n.getX()}")
+except NoNodeInRadiusError as e:
+    print(e)
+
+#print("\n\n\n")
+
+#path, distances = getShortestPath(35485240, 10845513120)
+#print(path)
 
 
 #try:
