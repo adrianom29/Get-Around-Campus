@@ -98,11 +98,11 @@ def getPath(start, end):
 
     return nodePath, edgePath, totalDistance    #returns list of nodes and edges from start to finish as well as total distance
 
-def getNearestNode(y, x):       #y = latitude, x = longitude
+def getNearestNode(lat, lng):
     closestNode = None
     minDistance = float("inf")
     for n in nodes:
-        d_squared = (n.getX() - x)**2 + (n.getY() - y)**2
+        d_squared = (n.getLng() - lng)**2 + (n.getLat() - lat)**2
         if d_squared < minDistance:
             minDistance = d_squared
             closestNode = n
@@ -118,7 +118,7 @@ def index():
 @app.route('/nodes')
 def get_nodes():
     return jsonify([
-        {'id': n.getID(), 'lat': n.getY(), 'lng': n.getX()} for n in nodes
+        {'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng()} for n in nodes
     ])
 
 @app.route('/path')
@@ -127,7 +127,7 @@ def get_path():
     dst = int(request.args.get('dst'))
     node_path, edge_path, distance = getPath(src, dst)
     path_coords = [
-        {'lat': findNode(n).getY(), 'lng': findNode(n).getX()} for n in node_path
+        {'lat': findNode(n).getLat(), 'lng': findNode(n).getLng()} for n in node_path
     ]
     return jsonify({'path': path_coords, 'distance': round(distance, 1)})
 
@@ -136,8 +136,11 @@ def get_nearest():
     lat = float(request.args.get('lat'))
     lng = float(request.args.get('lng'))
     n = getNearestNode(lat, lng)
-    return jsonify({'id': n.getID(), 'lat': n.getY(), 'lng': n.getX()})
+    return jsonify({'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng()})
+
+
+graph, nodes, edges = build()
 
 if __name__ == '__main__':
-    app.run(debug=True, port = 5001)
-    graph, nodes, edges = build()
+    app.run(debug=True, port = 5000)
+    

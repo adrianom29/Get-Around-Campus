@@ -6,7 +6,7 @@ G = ox.graph_from_address(place_name, dist=1000, network_type="walk")
 
 nodes, edges = ox.graph_to_gdfs(G)
 
-nodes_df = nodes.reset_index()[["osmid", "y", "x"]]
+nodes_df = nodes.reset_index()[["osmid", "lat", "lng"]]
 edges_df = edges.reset_index()[["u", "v", "length"]]
 
 nodes_df.to_csv("nodesNEW.csv", index=False)

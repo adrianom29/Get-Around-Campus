@@ -1,16 +1,16 @@
 class Node:
-    def __init__(self, id, y, x):
+    def __init__(self, id, lat, lng):
         self.id = id
-        self.y = y
-        self.x = x
+        self.lat = lat
+        self.lng = lng
     
     def getID(self):
         return self.id
     
-    def getY(self):
-        return self.y
+    def getLat(self):
+        return self.lat
     
-    def getX(self):
-        return self.x
+    def getLng(self):
+        return self.lng
     
     

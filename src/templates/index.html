@@ -34,47 +34,47 @@
     const map = L.map('map').setView([43.773361, -79.502361], 16);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© Contributors of OpenStreetMap'}).addTo(map);
-
-    let startNode = null;
-    let endNode = null;
-    let pathLayer = null;
-    let clickCount = 0;
-    const startMaker = L.circleMarker([0,0], {
+    const startMarker = L.circleMarker([0,0], {
         radius:8,
         colour: '#E24B4A',
         fillColour: '#E24B4A',
         fillOpacity: 1
     })
 
-    const endMaker = L.circleMarker([0,0], {
+    const endMarker = L.circleMarker([0,0], {
         radius:8,
         colour: '#1D9E75',
         fillColour: '#1D9E75',
         fillOpacity: 1
     })
+    let startNode = null;
+    let endNode = null;
+    let pathLayer = null;
+    let clickCount = 0;
+
 
     fetch(`${API}/nodes`).then(r => r.json()).then(nodes => {window.allNodes = nodes});
 
     map.on('click', async (e) => {
-        const {lat, lng} = e.lasting;
+        const {lat, lng} = e.latlng;
         const res = await fetch(`${API}/nearest?lat=${lat}&lng=${lng}`);
         const node = await res.json();
 
         if (clickCount % 2 == 0){
             startNode = node;
             startMarker.setLatLng([node.lat, node.lng]).addTo(map);
-            document.getElementId('start-label').textContent = `Start: node ${node.id}`;
+            document.getElementById('start-label').textContent = `Start: node ${node.id}`;
         }
         else{
             endNode = node;
-            endMarker.setLasting([node.lat, node.lng]).addTo(map);
+            endMarker.setLatLng([node.lat, node.lng]).addTo(map);
             document.getElementById('end-label').textContent = `End: node ${node.id}`;
         }
         clickCount++;
     })
 
     async function findPath(){
-        if (!startnode || !endNode) return;
+        if (!startNode || !endNode) return;
         const res = await fetch(`${API}/path?src=${startNode.id}&dst=${endNode.id}`)
         const data = await res.json();
 
@@ -82,10 +82,14 @@
             map.removeLayer(pathLayer);
         }
         const coords = data.path.map(p => [p.lat, p.lng]);
-        pathLayer = L.polyline(coords, {color: '#1D9E75', weight: 5, opacity: 0.85}).addToMap();
+        pathLayer = L.polyline(coords, {color: '#1D9E75', weight: 5, opacity: 0.85}).addTo(map);
         map.fitBounds(pathLayer.getBounds(), {padding: [40, 40]});
-        document.getElementById('result').textContent = `Distance: ${data.distance}m}`
+        document.getElementById('result').textContent = `Distance: ${data.distance} meters`
     }
+
+    fetch('http://localhost:5000/nearest?lat=43.7735&lng=-79.5053')
+        .then(r => r.json())
+        .then(console.log)
 
 </script>
 </body>
