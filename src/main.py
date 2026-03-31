@@ -2,9 +2,11 @@ import os
 from Objects import Node, Edge, InvalidNodeIDError, EdgeDoesNotExistError
 import networkx as nx
 import heapq
-import math
-import time
-import matplotlib.pyplot as plt
+from flask import Flask, jsonify, request, render_template
+from flask_cors import CORS
+
+app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
+CORS(app)
 
 def build():      #reads data from csv files, creates objects 
     G = nx.Graph()
@@ -51,7 +53,6 @@ def findEdge(start, dest):
         if e.getStart() == start and e.getDest() == dest:
             return e
     raise EdgeDoesNotExistError(f"No edge with starting node {start.getID()} and destination node {dest.getID} exists")
-
 
 def dijkstras(start):       #start node will be the IDs of the node
     previous = {n.getID(): None for n in nodes}
@@ -107,43 +108,36 @@ def getNearestNode(y, x):       #y = latitude, x = longitude
             closestNode = n
     return closestNode
 
-import sys
-print(sys.executable)
+@app.route('/')
+def index():
+    print("Looking for templates in:", app.template_folder)
+    print("Files found:", os.listdir(app.template_folder))
+    return render_template('index.html')
 
-start_time = time.perf_counter()
-graph, nodes, edges = build()
 
-#tests: 
-n = getNearestNode(4.767657, -79.509253)
-print(f"{n.getY()}, {n.getX()}")
+@app.route('/nodes')
+def get_nodes():
+    return jsonify([
+        {'id': n.getID(), 'lat': n.getY(), 'lng': n.getX()} for n in nodes
+    ])
 
-pnode, pedge, distances = getPath(35485240, 10845513120)
-print(len(pnode))
-print(len(pedge))
+@app.route('/path')
+def get_path():
+    src = int(request.args.get('src'))
+    dst = int(request.args.get('dst'))
+    node_path, edge_path, distance = getPath(src, dst)
+    path_coords = [
+        {'lat': findNode(n).getY(), 'lng': findNode(n).getX()} for n in node_path
+    ]
+    return jsonify({'path': path_coords, 'distance': round(distance, 1)})
 
-try:
-    n = findNode(13402070430)
-    print(f"{n.getY()}, {n.getX()}")
-except InvalidNodeIDError as e:
-    print(e)
+@app.route('/nearest')
+def get_nearest():
+    lat = float(request.args.get('lat'))
+    lng = float(request.args.get('lng'))
+    n = getNearestNode(lat, lng)
+    return jsonify({'id': n.getID(), 'lat': n.getY(), 'lng': n.getX()})
 
-print(findNode(edges[3].getStart()).getX())
-
-end_time = time.perf_counter()
-print(end_time - start_time)
-
-latitudes = [n.getY() for n in nodes]
-longitudes = [n.getX() for n in nodes]
-
-for e in edges:
-    xValues = [findNode(e.getStart()).getX(), findNode(e.getDest()).getX()]
-    yValues = [findNode(e.getStart()).getY(), findNode(e.getDest()).getY()]
-    plt.plot(xValues, yValues, linewidth=0.2)
-
-plt.scatter(longitudes, latitudes, s=2)
-plt.xlabel("X")
-plt.ylabel("Y")
-plt.title("Graph nodes")
-
-plt.show()
-
+if __name__ == '__main__':
+    app.run(debug=True, port = 5001)
+    graph, nodes, edges = build()
