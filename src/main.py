@@ -1,5 +1,5 @@
 import os
-from src.Objects import Node, Edge, InvalidNodeIDError, EdgeDoesNotExistError
+from Objects import Node, Edge, InvalidNodeIDError, EdgeDoesNotExistError
 import networkx as nx
 import heapq
 from flask import Flask, jsonify, request, render_template
