@@ -21,7 +21,7 @@ def build():      #reads data from csv files, creates objects
         next(f)
         for line in f:
             object = line.split(",")
-            new_node = Node(int(object[0]), float(object[1]), float(object[2]))
+            new_node = Node(int(object[0]), float(object[1]), float(object[2]), object[3])
             nodes.append(new_node)
             G.add_node(int(object[0]), data=new_node)
 
@@ -92,11 +92,8 @@ def getPath(start, end):
         current = previous[current]
 
     nodePath = nodePath[::-1]       #reverses array (nodes are now in order from start to finish)
-    edgePath = []
-    for i in range(len(nodePath) -1):
-        edgePath.append(findEdge(nodePath[i], nodePath[i+1]))
 
-    return nodePath, edgePath, totalDistance    #returns list of nodes and edges from start to finish as well as total distance
+    return nodePath, totalDistance    #returns list of nodes and edges from start to finish as well as total distance
 
 def getNearestNode(lat, lng):
     closestNode = None
@@ -118,17 +115,15 @@ def index():
 @app.route('/nodes')
 def get_nodes():
     return jsonify([
-        {'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng()} for n in nodes
+        {'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()} for n in nodes
     ])
 
 @app.route('/path')
 def get_path():
     src = int(request.args.get('src'))
     dst = int(request.args.get('dst'))
-    node_path, edge_path, distance = getPath(src, dst)
-    path_coords = [
-        {'lat': findNode(n).getLat(), 'lng': findNode(n).getLng()} for n in node_path
-    ]
+    node_path, distance = getPath(src, dst)
+    path_coords = [{'lat': findNode(n).getLat(), 'lng': findNode(n).getLng()} for n in node_path]
     return jsonify({'path': path_coords, 'distance': round(distance, 1)})
 
 @app.route('/nearest')
@@ -136,7 +131,7 @@ def get_nearest():
     lat = float(request.args.get('lat'))
     lng = float(request.args.get('lng'))
     n = getNearestNode(lat, lng)
-    return jsonify({'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng()})
+    return jsonify({'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()})
 
 
 graph, nodes, edges = build()
@@ -144,4 +139,7 @@ graph, nodes, edges = build()
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port = port)
+    
+    #app.run(debug=True)
+    
     

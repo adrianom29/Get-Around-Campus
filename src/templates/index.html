@@ -26,11 +26,12 @@
   <p id="start-label">Start: —</p>
   <p id="end-label">End: —</p>
   <button onclick="findPath()">Find shortest path</button>
+  <button onclick="clearPath()">Clear</button>
   <div id="result"></div>
 </div>
 
 <script>
-    const API = 'https://get-around-campus.onrender.com/';
+    const API = 'https://get-around-campus.onrender.com';      <!--http://localhost:5000-->
     const map = L.map('map').setView([43.773361, -79.502361], 16);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© Contributors of OpenStreetMap'}).addTo(map);
@@ -59,16 +60,19 @@
         const {lat, lng} = e.latlng;
         const res = await fetch(`${API}/nearest?lat=${lat}&lng=${lng}`);
         const node = await res.json();
-
+        let info = node.name === '\n' ? node.id: node.name;
         if (clickCount % 2 == 0){
+            if (pathLayer){ 
+                clearPath();
+            }
             startNode = node;
             startMarker.setLatLng([node.lat, node.lng]).addTo(map);
-            document.getElementById('start-label').textContent = `Start: node ${node.id}`;
+            document.getElementById('start-label').textContent = `Start: ${info}`;
         }
         else{
             endNode = node;
             endMarker.setLatLng([node.lat, node.lng]).addTo(map);
-            document.getElementById('end-label').textContent = `End: node ${node.id}`;
+            document.getElementById('end-label').textContent = `End: ${info}`;
         }
         clickCount++;
     })
@@ -87,9 +91,24 @@
         document.getElementById('result').textContent = `Distance: ${data.distance} meters`
     }
 
-    fetch('http://localhost:5000/nearest?lat=43.7735&lng=-79.5053')
-        .then(r => r.json())
-        .then(console.log)
+    async function clearPath(){
+        if(pathLayer){
+            map.removeLayer(pathLayer);
+            pathLayer = null;
+        }
+        if (map.hasLayer(startMarker)){
+            map.removeLayer(startMarker);
+        }
+        if (map.hasLayer(endMarker)){
+            map.removeLayer(endMarker);
+        }
+        startNode = null;
+        endNode = null;
+        clickCount = 0;
+        document.getElementById('start-label').textContent = 'Start: —';
+        document.getElementById('end-label').textContent = 'End: —';
+        document.getElementById('result').textContent = '';
+    }
 
 </script>
 </body>
