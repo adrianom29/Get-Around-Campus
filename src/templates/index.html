@@ -1,115 +1,151 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <style>
-    body { margin: 0; font-family: sans-serif; }
-    #map { width: 100vw; height: 100vh; }
-    #panel {
-      position: absolute; top: 16px; right: 16px; z-index: 999;
-      background: white; padding: 16px; border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15); width: 220px;
-    }
-    #panel p { margin: 6px 0; font-size: 13px; color: #555; }
-    #panel button {
-      width: 100%; padding: 8px; background: #185FA5;
-      color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 8px;
-    }
-    #result { font-weight: 500; margin-top: 8px; font-size: 13px; }
-  </style>
-</head>
-<body>
-<div id="map"></div>
-<div id="panel">
-  <p><b>Click map</b> to set start, then end</p>
-  <p id="start-label">Start: —</p>
-  <p id="end-label">End: —</p>
-  <button onclick="findPath()">Find shortest path</button>
-  <button onclick="clearPath()">Clear</button>
-  <div id="result"></div>
-</div>
-
-<script>
-    const API = 'https://get-around-campus.onrender.com';      <!--http://localhost:5000-->
-    const map = L.map('map').setView([43.773361, -79.502361], 16);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© Contributors of OpenStreetMap'}).addTo(map);
-    const startMarker = L.circleMarker([0,0], {
-        radius:8,
-        colour: '#E24B4A',
-        fillColour: '#E24B4A',
-        fillOpacity: 1
-    })
-
-    const endMarker = L.circleMarker([0,0], {
-        radius:8,
-        colour: '#1D9E75',
-        fillColour: '#1D9E75',
-        fillOpacity: 1
-    })
-    let startNode = null;
-    let endNode = null;
-    let pathLayer = null;
-    let clickCount = 0;
-
-
-    fetch(`${API}/nodes`).then(r => r.json()).then(nodes => {window.allNodes = nodes});
-
-    map.on('click', async (e) => {
-        const {lat, lng} = e.latlng;
-        const res = await fetch(`${API}/nearest?lat=${lat}&lng=${lng}`);
-        const node = await res.json();
-        let info = node.name === '\n' ? node.id: node.name;
-        if (clickCount % 2 == 0){
-            if (pathLayer){ 
-                clearPath();
+    <head>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        <style>
+            body { margin: 0; font-family: sans-serif; }
+            #map { width: 100vw; height: 100vh; }
+            #panel {
+                position: absolute; top: 16px; right: 16px; z-index: 999;
+                background: white; padding: 16px; border-radius: 12px;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.15); width: 220px;
             }
-            startNode = node;
-            startMarker.setLatLng([node.lat, node.lng]).addTo(map);
-            document.getElementById('start-label').textContent = `Start: ${info}`;
-        }
-        else{
-            endNode = node;
-            endMarker.setLatLng([node.lat, node.lng]).addTo(map);
-            document.getElementById('end-label').textContent = `End: ${info}`;
-        }
-        clickCount++;
-    })
+            #panel p { margin: 6px 0; font-size: 13px; color: #555; }
+            #panel button {
+                width: 100%; padding: 8px; background: #185FA5;
+                color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 8px;
+            }
+            #result { font-weight: 500; margin-top: 8px; font-size: 13px; }
+            #search { width: 100%; padding: 6px 8px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 13px; box-sizing: border-box; }
+            #suggestions { max-height: 180px; overflow-y: auto; border: 0.5px solid #ccc; border-radius: 8px; margin-top: 4px; display: none; }
+            .suggestion { padding: 8px; font-size: 13px; cursor: pointer; }
+            .suggestion:hover { background: #f0f0f0; }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <div id="panel">
+            <p><b>Click map, or search for a building</b> to set start, then end</p>
+            <input type="text" id="search" placeholder="Search building..." oninput="searchBuildings(this.value)"/>
+            <div id="suggestions"></div>
+            <p id="start-label">Start: —</p>
+            <p id="end-label">End: —</p>
+            <button onclick="findPath()">Find shortest path</button>
+            <button onclick="clearPath()">Clear</button>
+            <div id="result"></div>
+        </div>
 
-    async function findPath(){
-        if (!startNode || !endNode) return;
-        const res = await fetch(`${API}/path?src=${startNode.id}&dst=${endNode.id}`)
-        const data = await res.json();
+        <script>
+            const API = 'https://get-around-campus.onrender.com';      //http://localhost:5000
+            const map = L.map('map').setView([43.773361, -79.502361], 16);
 
-        if (pathLayer){
-            map.removeLayer(pathLayer);
-        }
-        const coords = data.path.map(p => [p.lat, p.lng]);
-        pathLayer = L.polyline(coords, {color: '#1D9E75', weight: 5, opacity: 0.85}).addTo(map);
-        map.fitBounds(pathLayer.getBounds(), {padding: [40, 40]});
-        document.getElementById('result').textContent = `Distance: ${data.distance} meters`
-    }
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© Contributors of OpenStreetMap'}).addTo(map);
+            const startMarker = L.circleMarker([0,0], {
+                radius:8,
+                colour: '#E24B4A',
+                fillColour: '#E24B4A',
+                fillOpacity: 1
+            })
 
-    async function clearPath(){
-        if(pathLayer){
-            map.removeLayer(pathLayer);
-            pathLayer = null;
-        }
-        if (map.hasLayer(startMarker)){
-            map.removeLayer(startMarker);
-        }
-        if (map.hasLayer(endMarker)){
-            map.removeLayer(endMarker);
-        }
-        startNode = null;
-        endNode = null;
-        clickCount = 0;
-        document.getElementById('start-label').textContent = 'Start: —';
-        document.getElementById('end-label').textContent = 'End: —';
-        document.getElementById('result').textContent = '';
-    }
+            const endMarker = L.circleMarker([0,0], {
+                radius:8,
+                colour: '#1D9E75',
+                fillColour: '#1D9E75',
+                fillOpacity: 1
+            })
+            let startNode = null;
+            let endNode = null;
+            let pathLayer = null;
+            let clickCount = 0;
+            let namedNodes = []
 
-</script>
-</body>
+            fetch(`${API}/nodes`).then(r => r.json()).then(nodes => {window.allNodes = nodes});
+            fetch(`${API}/named-nodes`).then(r => r.json).then(data => {namedNodes = data});
+
+            map.on('click', async (e) => {
+                const {lat, lng} = e.latlng;
+                const res = await fetch(`${API}/nearest?lat=${lat}&lng=${lng}`);
+                const node = await res.json();
+                let info = node.name === '' ? `${lat.toFixed(7)}, ${lng.toFixed(7)}`: node.name;
+                drawNode(node, info);
+            })
+
+            function drawNode(node, info){
+                if (clickCount % 2 == 0){
+                    if (pathLayer) clearPath();
+                    startNode = node;
+                    startMarker.setLatLng([node.lat, node.lng]).addTo(map);
+                    if (!map.hasLayer(startMarker)) startMarker.addTo(map);
+                    document.getElementById('start-label').textContent = `Start: ${info}`;
+                }
+                else{
+                    endNode = node;
+                    endMarker.setLatLng([node.lat, node.lng]).addTo(map);
+                    if (!map.hasLayer(endMarker)) endMarker.addTo(map);
+                    document.getElementById('end-label').textContent = `End: ${info}`;
+                }
+                clickCount++;
+            }
+
+            async function findPath(){
+                if (!startNode || !endNode) return;
+                const res = await fetch(`${API}/path?src=${startNode.id}&dst=${endNode.id}`)
+                const data = await res.json();
+
+                if (pathLayer){
+                    map.removeLayer(pathLayer);
+                }
+                const coords = data.path.map(p => [p.lat, p.lng]);
+                pathLayer = L.polyline(coords, {color: '#1D9E75', weight: 5, opacity: 0.85}).addTo(map);
+                map.fitBounds(pathLayer.getBounds(), {padding: [40, 40]});
+                document.getElementById('result').textContent = `Distance: ${data.distance} meters`
+            }
+
+            async function clearPath(){
+                if(pathLayer){
+                    map.removeLayer(pathLayer);
+                    pathLayer = null;
+                }
+                if (map.hasLayer(startMarker)){
+                    map.removeLayer(startMarker);
+                }
+                if (map.hasLayer(endMarker)){
+                    map.removeLayer(endMarker);
+                }
+                startNode = null;
+                endNode = null;
+                clickCount = 0;
+                document.getElementById('start-label').textContent = 'Start: —';
+                document.getElementById('end-label').textContent = 'End: —';
+                document.getElementById('result').textContent = '';
+            }
+
+            function searchBuildings(query){
+                const box = document.getElementById('suggestions');
+                if (!query){
+                    box.style.display = 'none';
+                    return;
+                }
+                const matches = namedNodes.filter(n => n.name.toLowerCase().includes(query.toLowerCase()))
+                if(matches.length === 0){
+                    box.style.display = 'none';
+                    return;
+                }
+                box.innerHTML = matches.map(
+                    n => `<div class="suggestion" onclick="selectBuilding(${n.id})">${n.name}</div>`
+                ).join('');
+                box.style.display = 'block';
+            }
+
+            function selectBuilding(id){
+                const node = namedNodes.find(n => n.id === id);
+                document.getElementById('suggestions').style.display = 'none';
+                document.getElementById('search').value = node.name;
+                drawNode(node, node.name);
+                map.setView([node.lat, node.lng], 18);
+            }
+
+        </script>
+    </body>
 </html>

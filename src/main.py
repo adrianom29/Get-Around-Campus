@@ -21,7 +21,7 @@ def build():      #reads data from csv files, creates objects
         next(f)
         for line in f:
             object = line.split(",")
-            new_node = Node(int(object[0]), float(object[1]), float(object[2]), object[3])
+            new_node = Node(int(object[0]), float(object[1]), float(object[2]),  object[3].strip() if len(object) > 3 else None)
             nodes.append(new_node)
             G.add_node(int(object[0]), data=new_node)
 
@@ -133,6 +133,10 @@ def get_nearest():
     n = getNearestNode(lat, lng)
     return jsonify({'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()})
 
+@app.route('/named-nodes')
+def get_named_nodes():
+    named = [{'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()} for n in nodes if n.getName()]
+    return jsonify(named)
 
 graph, nodes, edges = build()
 
