@@ -32,6 +32,7 @@
             <p id="start-label">Start: —</p>
             <p id="end-label">End: —</p>
             <button onclick="findPath()">Find shortest path</button>
+            <button onclick="swapStartAndEnd()">Swap Start and End</button>
             <button onclick="clearPath()">Clear</button>
             <div id="result"></div>
         </div>
@@ -73,13 +74,20 @@
 
             function drawNode(node, info){
                 if (clickCount % 2 == 0){
-                    if (pathLayer) clearPath();
+                    if (pathLayer){
+                        clearPath();
+                    } 
                     startNode = node;
                     startMarker.setLatLng([node.lat, node.lng]).addTo(map);
                     if (!map.hasLayer(startMarker)) startMarker.addTo(map);
                     document.getElementById('start-label').textContent = `Start: ${info}`;
                 }
                 else{
+                    if (pathLayer){
+                        clearPath();
+                        drawNode(node, info);
+                        return;
+                    } 
                     endNode = node;
                     endMarker.setLatLng([node.lat, node.lng]).addTo(map);
                     if (!map.hasLayer(endMarker)) endMarker.addTo(map);
@@ -144,6 +152,18 @@
                 document.getElementById('search').value = node.name;
                 drawNode(node, node.name);
                 map.setView([node.lat, node.lng], 18);
+            }
+
+            function swapStartAndEnd(){
+                temp = endNode;
+                tempText = document.getElementById('end-label').textContent.substring(5);
+                endMarker.setLatLng([startNode.lat, startNode.lng]).addTo(map);
+                document.getElementById('end-label').textContent = `End: ${document.getElementById('start-label').textContent.substring(7)}`;
+
+
+                startMarker.setLatLng([temp.lat, temp.lng]).addTo(map);
+                document.getElementById('start-label').textContent = `Start: ${tempText}`;
+
             }
 
         </script>
