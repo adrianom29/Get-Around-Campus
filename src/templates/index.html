@@ -68,7 +68,7 @@
                 const {lat, lng} = e.latlng;
                 const res = await fetch(`${API}/nearest?lat=${lat}&lng=${lng}`);
                 const node = await res.json();
-                let info = node.name === '' ? `${lat.toFixed(7)}, ${lng.toFixed(7)}`: node.name;
+                let info = node.name === '' ? `${lat.toFixed(7)}, ${lng.toFixed(7)}`: node.name; //node.id
                 drawNode(node, info);
             })
 
