@@ -21,7 +21,8 @@ def build():      #reads data from csv files, creates objects
         next(f)
         for line in f:
             object = line.split(",")
-            new_node = Node(int(object[0]), float(object[1]), float(object[2]),  object[3].strip() if len(object) > 3 else None)
+            name = object[3].strip() if len(object) > 3 else None
+            new_node = Node(int(object[0]), float(object[1]), float(object[2]), name)
             nodes.append(new_node)
             G.add_node(int(object[0]), data=new_node)
 
@@ -105,12 +106,13 @@ def getNearestNode(lat, lng):
             closestNode = n
     return closestNode
 
+graph, nodes, edges = build()
+
 @app.route('/')
 def index():
     print("Looking for templates in:", app.template_folder)
     print("Files found:", os.listdir(app.template_folder))
     return render_template('index.html')
-
 
 @app.route('/nodes')
 def get_nodes():
@@ -135,10 +137,8 @@ def get_nearest():
 
 @app.route('/named-nodes')
 def get_named_nodes():
-    named = [{'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()} for n in nodes if n.getName()]
+    named = [{'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()} for n in nodes if n.getName() and n.getName().strip()]
     return jsonify(named)
-
-graph, nodes, edges = build()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

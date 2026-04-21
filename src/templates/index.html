@@ -62,7 +62,9 @@
             let namedNodes = []
 
             fetch(`${API}/nodes`).then(r => r.json()).then(nodes => {window.allNodes = nodes});
-            fetch(`${API}/named-nodes`).then(r => r.json).then(data => {namedNodes = data});
+            fetch(`${API}/named-nodes`)
+                .then(r => r.json())
+                .then(data => {namedNodes = data;});
 
             map.on('click', async (e) => {
                 const {lat, lng} = e.latlng;
