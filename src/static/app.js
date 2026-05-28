@@ -1,4 +1,4 @@
-const API = 'https://get-around-campus.onrender.com'; //http://127.0.0.1:5000
+const API = 'http://127.0.0.1:5000'; //https://get-around-campus.onrender.com
 let currentCampus = null;
 let namedNodes = [];
 let startNode = null, endNode = null, pathLayer = null, clickCount = 0;
@@ -40,9 +40,9 @@ async function switchCampus(key) {
 map.on('click', async (e) => {
     if (!currentCampus) return;
     const {lat, lng} = e.latlng;
-    const res = await fetch(`${API}/${currentCampus}/nearest?lat=${lat}&lng=${lng}`);
+    const res = await fetch(`${API}/${currentCampus}/nearest?lat=${lat}&lng=${lng}`); 
     const node = await res.json();
-    const info = node.name?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const info = `${node.id}`//node.name?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     drawNode(node, info);
 });
 
