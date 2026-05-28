@@ -8,38 +8,65 @@ from flask_cors import CORS
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 CORS(app)
 
-def build():      #reads data from csv files, creates objects 
+CAMPUSES = {
+    "YU": {
+        "name":   "York University",
+        "center": [43.773361, -79.502361],
+        "zoom":   16,
+        "nodes":  "../csv/YorkU-nodes.csv",
+        "edges":  "../csv/YorkU-edges.csv",
+    },
+    "UofT":{
+        "name":   "University of Toronto St. George",
+        "center": [43.663381, -79.395807],
+        "zoom":   16,
+        "nodes":  "../csv/UofT-nodes.csv",
+        "edges":  "../csv/UofT-edges.csv",
+    },
+}
+
+_campus_data = {}   # campus_key -> {"graph": G, "nodes": [...], "edges": [...]}
+
+def build(campus_key):
+    cfg = CAMPUSES[campus_key]
     G = nx.Graph()
-    nodes = []
-    edges = []
+    nodes, edges = [], []
 
     base_path = os.path.dirname(__file__)
-    nodes_path = os.path.join(base_path, "../csv/YU-nodes.csv")
-    edges_path = os.path.join(base_path, "../csv/YU-edges.csv")
+    nodes_path = os.path.abspath(os.path.join(base_path, cfg["nodes"]))
+    edges_path = os.path.abspath(os.path.join(base_path, cfg["edges"]))
 
     with open(nodes_path, "r") as f:
         next(f)
         for line in f:
-            object = line.split(",")
-            name = object[3].strip() if len(object) > 3 else None
-            new_node = Node(int(object[0]), float(object[1]), float(object[2]), name)
-            nodes.append(new_node)
-            G.add_node(int(object[0]), data=new_node)
+            parts = line.split(",")
+            name = parts[3].strip() if len(parts) > 3 else None
+            n = Node(int(parts[0]), float(parts[1]), float(parts[2]), name)
+            nodes.append(n)
+            G.add_node(n.getID(), data=n)
 
     with open(edges_path, "r") as f:
         next(f)
         for line in f:
-            object = line.split(",")
-            new_edge = Edge(int(object[0]), int(object[1]), float(object[2]))
-            edges.append(new_edge)
-            G.add_edge(int(object[0]), int(object[1]), weight=float(object[2]))  
+            parts = line.split(",")
+            e = Edge(int(parts[0]), int(parts[1]), float(parts[2]))
+            edges.append(e)
+            G.add_edge(e.getStart(), e.getDest(), weight=e.getWeight())
 
     return G, nodes, edges
 
-def findNode(id):
-    start = 0
-    end = len(nodes)-1
-    while (start <= end):
+def get_campus(campus_key):
+    """Lazy-load and cache campus graph data."""
+    if campus_key not in _campus_data:
+        if campus_key not in CAMPUSES:
+            return None
+        G, nodes, edges = build(campus_key)
+        _campus_data[campus_key] = {"graph": G, "nodes": nodes, "edges": edges}
+    return _campus_data[campus_key]
+
+def findNode(nodes, id):
+    start, end = 0, len(nodes) - 1
+    while start <= end:
         mid = (start + end) // 2
         if nodes[mid].getID() == id:
             return nodes[mid]
@@ -47,103 +74,94 @@ def findNode(id):
             end = mid - 1
         else:
             start = mid + 1
-    raise InvalidNodeIDError(f"No such id {id} in nodes exists")
+    raise InvalidNodeIDError(f"No node with id {id}")
 
-def findEdge(start, dest):
-    for e in edges:
-        if e.getStart() == start and e.getDest() == dest:
-            return e
-    raise EdgeDoesNotExistError(f"No edge with starting node {start.getID()} and destination node {dest.getID} exists")
-
-def dijkstras(start):       #start node will be the IDs of the node
+def dijkstras(graph, nodes, start_id):
     previous = {n.getID(): None for n in nodes}
     visited = {n.getID(): False for n in nodes}
     distances = {n.getID(): float("inf") for n in nodes}
-    distances[start] = 0
-    priorityQueue = []
-    heapq.heapify(priorityQueue)
-    heapq.heappush(priorityQueue, (0, start))
-    
-    while priorityQueue:
-        currentDistance, currentNode = heapq.heappop(priorityQueue)
-    
-        if currentDistance > distances[currentNode]:    #removes any "stale" elements 
+    distances[start_id] = 0
+    pq = [(0, start_id)]
+    heapq.heapify(pq)
+
+    while pq:
+        cur_dist, cur_node = heapq.heappop(pq)
+        if cur_dist > distances[cur_node]:
             continue
-        
-        visited[currentNode] = True
-        for neighbourNode, edge in graph[currentNode].items():
-            weight = edge.get("weight")
-            if visited[neighbourNode]: 
+        visited[cur_node] = True
+        for neighbour, edge in graph[cur_node].items():
+            if visited[neighbour]:
                 continue
-            newDistance = currentDistance + weight
-            if newDistance < distances[neighbourNode]:
-                distances[neighbourNode] = newDistance
-                previous[neighbourNode] = currentNode
-                heapq.heappush(priorityQueue, (newDistance, neighbourNode))
-    
+            new_dist = cur_dist + edge["weight"]
+            if new_dist < distances[neighbour]:
+                distances[neighbour] = new_dist
+                previous[neighbour] = cur_node
+                heapq.heappush(pq, (new_dist, neighbour))
     return previous, distances
 
-def getPath(start, end):
-    previous, distances = dijkstras(start)
-    nodePath = []
-    totalDistance = distances[end]
-    current = end
-    while (current != None):    
-        nodePath.append(current)    #nodes are appended in reverse order
+def getPath(graph, nodes, start_id, end_id):
+    previous, distances = dijkstras(graph, nodes, start_id)
+    path, current = [], end_id
+    while current is not None:
+        path.append(current)
         current = previous[current]
+    return path[::-1], distances[end_id]
 
-    nodePath = nodePath[::-1]       #reverses array (nodes are now in order from start to finish)
-
-    return nodePath, totalDistance    #returns list of nodes and edges from start to finish as well as total distance
-
-def getNearestNode(lat, lng):
-    closestNode = None
-    minDistance = float("inf")
-    for n in nodes:
-        d_squared = (n.getLng() - lng)**2 + (n.getLat() - lat)**2
-        if d_squared < minDistance:
-            minDistance = d_squared
-            closestNode = n
-    return closestNode
-
-graph, nodes, edges = build()
+def getNearestNode(nodes, lat, lng):
+    return min(nodes, key=lambda n: (n.getLat()-lat)**2 + (n.getLng()-lng)**2)
 
 @app.route('/')
 def index():
-    print("Looking for templates in:", app.template_folder)
-    print("Files found:", os.listdir(app.template_folder))
     return render_template('index.html')
 
-@app.route('/nodes')
-def get_nodes():
+@app.route('/campuses')
+def list_campuses():
     return jsonify([
-        {'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()} for n in nodes
+        {"key": k, "name": v["name"], "center": v["center"], "zoom": v["zoom"]}
+        for k, v in CAMPUSES.items()
     ])
 
-@app.route('/path')
-def get_path():
-    src = int(request.args.get('src'))
-    dst = int(request.args.get('dst'))
-    node_path, distance = getPath(src, dst)
-    path_coords = [{'lat': findNode(n).getLat(), 'lng': findNode(n).getLng()} for n in node_path]
-    return jsonify({'path': path_coords, 'distance': round(distance, 1)})
+@app.route('/<campus>/nodes')
+def get_nodes(campus):
+    data = get_campus(campus)
+    if not data:
+        return jsonify({"error": "Unknown campus"}), 404
+    return jsonify([
+        {'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()}
+        for n in data["nodes"]
+    ])
 
-@app.route('/nearest')
-def get_nearest():
+@app.route('/<campus>/named-nodes')
+def get_named_nodes(campus):
+    data = get_campus(campus)
+    if not data:
+        return jsonify({"error": "Unknown campus"}), 404
+    return jsonify([
+        {'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()}
+        for n in data["nodes"] if n.getName() and n.getName().strip()
+    ])
+
+@app.route('/<campus>/nearest')
+def get_nearest(campus):
+    data = get_campus(campus)
+    if not data:
+        return jsonify({"error": "Unknown campus"}), 404
     lat = float(request.args.get('lat'))
     lng = float(request.args.get('lng'))
-    n = getNearestNode(lat, lng)
+    n = getNearestNode(data["nodes"], lat, lng)
     return jsonify({'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()})
 
-@app.route('/named-nodes')
-def get_named_nodes():
-    named = [{'id': n.getID(), 'lat': n.getLat(), 'lng': n.getLng(), 'name': n.getName()} for n in nodes if n.getName() and n.getName().strip()]
-    return jsonify(named)
+@app.route('/<campus>/path')
+def get_path(campus):
+    data = get_campus(campus)
+    if not data:
+        return jsonify({"error": "Unknown campus"}), 404
+    src = int(request.args.get('src'))
+    dst = int(request.args.get('dst'))
+    node_path, distance = getPath(data["graph"], data["nodes"], src, dst)
+    coords = [{'lat': findNode(data["nodes"], n).getLat(),
+               'lng': findNode(data["nodes"], n).getLng()} for n in node_path]
+    return jsonify({'path': coords, 'distance': round(distance, 1)})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port = port)
-    
-    #app.run(debug=True)
-    
-    
+    app.run(debug=True)
