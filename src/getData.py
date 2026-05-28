@@ -1,8 +1,8 @@
 import osmnx as ox
 
-coordinates = "43.66338106780952, -79.39580738701167"    
+coordinates = "42.303238, -83.065248"    
 
-G = ox.graph_from_address(coordinates, dist=1000, network_type="walk")
+G = ox.graph_from_address(coordinates, dist=750, network_type="walk")
 
 nodes, edges = ox.graph_to_gdfs(G)
 
@@ -14,5 +14,5 @@ nodes_df["names"] = nodes_df["osmid"].map(namedNodes).fillna("")
 
 edges_df = edges.reset_index()[["u", "v", "length"]]
 
-nodes_df.to_csv("UofT-nodes.csv", index=False)
-edges_df.to_csv("UofT-edges.csv", index=False)
+nodes_df.to_csv("Windsor-nodes.csv", index=False)
+edges_df.to_csv("Windsor-edges.csv", index=False)

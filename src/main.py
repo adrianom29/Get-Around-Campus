@@ -10,18 +10,67 @@ CORS(app)
 
 CAMPUSES = {
     "YU": {
-        "name":   "York University",
+        "name": "York University",
         "center": [43.773361, -79.502361],
-        "zoom":   16,
-        "nodes":  "../csv/YorkU-nodes.csv",
-        "edges":  "../csv/YorkU-edges.csv",
+        "zoom": 16,
+        "nodes": "../csv/YorkU-nodes.csv",
+        "edges": "../csv/YorkU-edges.csv",
     },
     "UofT":{
-        "name":   "University of Toronto St. George",
+        "name": "University of Toronto St. George",
         "center": [43.663381, -79.395807],
-        "zoom":   16,
-        "nodes":  "../csv/UofT-nodes.csv",
-        "edges":  "../csv/UofT-edges.csv",
+        "zoom": 16,
+        "nodes": "../csv/UofT-nodes.csv",
+        "edges": "../csv/UofT-edges.csv",
+    },
+    "TMU":{
+        "name": "Toronto Metropolitan University",
+        "center": [43.657583, -79.383001],
+        "zoom": 16,
+        "nodes": "../csv/TMU-nodes.csv",
+        "edges": "../csv/TMU-edges.csv",
+    },
+    "UWO":{
+        "name": "Western University",
+        "center": [43.007141, -81.274985],
+        "zoom": 16,
+        "nodes": "../csv/UWO-nodes.csv",
+        "edges": "../csv/UWO-edges.csv",
+    },
+    "McMaster":{
+        "name": "McMaster University",
+        "center": [43.262888, -79.918887],
+        "zoom": 16,
+        "nodes": "../csv/Mac-nodes.csv",
+        "edges": "../csv/Mac-edges.csv",
+    },
+    "UWWLU":{
+        "name": "University of Waterloo and Wilfred Laurier University",
+        "center": [43.473147, -80.537368],
+        "zoom": 16,
+        "nodes": "../csv/UW-WLU-nodes.csv",
+        "edges": "../csv/UW-WLU-edges.csv",
+    },
+    "UG":{
+        "name": "University of Guelph",
+        "center": [43.531960, -80.226169],
+        "zoom": 16,
+        "nodes": "../csv/UG-nodes.csv",
+        "edges": "../csv/UG-edges.csv",
+    },
+    "QU":{
+        "name": "Queen's University",
+        "center": [44.225706, -76.495570],
+        "zoom": 16,
+        "nodes": "../csv/QU-nodes.csv",
+        "edges": "../csv/QU-edges.csv",
+    },
+    "WindsorU":{#750
+        "name": "University of Windsor",
+        "center": [42.303238, -83.065248],
+        "zoom": 16,
+        "nodes": "../csv/Windsor-nodes.csv",
+        "edges": "../csv/Windsor-edges.csv",
     },
 }
 
@@ -164,7 +213,4 @@ def get_path(campus):
     return jsonify({'path': coords, 'distance': round(distance, 1)})
 
 if __name__ == '__main__':
-    #app.run(debug=True)
-
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port = port)
+    app.run(debug=True)
