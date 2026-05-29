@@ -1,4 +1,5 @@
-const API = 'https://get-around-campus.onrender.com'; //http://127.0.0.1:5000
+//const API = 'http://127.0.0.1:5000';
+const API = 'https://get-around-campus.onrender.com';
 let currentCampus = null;
 let namedNodes = [];
 let startNode = null, endNode = null, pathLayer = null, clickCount = 0;
