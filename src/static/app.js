@@ -43,7 +43,7 @@ map.on('click', async (e) => {
     const {lat, lng} = e.latlng;
     const res = await fetch(`${API}/${currentCampus}/nearest?lat=${lat}&lng=${lng}`); 
     const node = await res.json();
-    const info = `${node.id}`//node.name?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const info = node.name?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`; //${node.id};
     drawNode(node, info);
 });
 

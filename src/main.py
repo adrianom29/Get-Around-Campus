@@ -40,7 +40,6 @@ def build(campus_key):
     return G, nodes, edges
 
 def get_campus(campus_key):
-    """Lazy-load and cache campus graph data."""
     if campus_key not in _campus_data:
         if campus_key not in CAMPUSES:
             return None
@@ -148,7 +147,5 @@ def get_path(campus):
     return jsonify({'path': coords, 'distance': round(distance, 1)})
 
 if __name__ == '__main__':
-    #app.run(debug=True)
-
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port = port)
