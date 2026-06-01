@@ -1,5 +1,5 @@
 import os
-from Objects import Node, Edge, InvalidNodeIDError, EdgeDoesNotExistError
+from objects import Node, Edge 
 import networkx as nx
 import heapq
 from flask import Flask, jsonify, request, render_template
@@ -9,7 +9,7 @@ from config import CAMPUSES
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 CORS(app)
 
-_campus_data = {}   # campus_key -> {"graph": G, "nodes": [...], "edges": [...]}
+_campus_data = {}   # campus_key -> { "graph": G, "nodes": [...], "edges": [...]}
 
 def build(campus_key):
     cfg = CAMPUSES[campus_key]
@@ -57,7 +57,6 @@ def findNode(nodes, id):
             end = mid - 1
         else:
             start = mid + 1
-    raise InvalidNodeIDError(f"No node with id {id}")
 
 def dijkstras(graph, nodes, start_id):
     previous = {n.getID(): None for n in nodes}
