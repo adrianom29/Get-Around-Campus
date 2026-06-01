@@ -1,5 +1,5 @@
 import os
-from objects import Node, Edge 
+from Objects import Node, Edge 
 import networkx as nx
 import heapq
 from flask import Flask, jsonify, request, render_template
