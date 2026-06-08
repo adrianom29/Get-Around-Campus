@@ -1,5 +1,6 @@
 //const API = 'http://127.0.0.1:5000';
-const API = 'https://get-around-campus.onrender.com';
+//const API = 'https://get-around-campus.onrender.com';
+const API = 'https://get-around-campus.fly.dev';
 let currentCampus = null;
 let namedNodes = [];
 let startNode = null, endNode = null, pathLayer = null, clickCount = 0;
@@ -8,7 +9,7 @@ const map = L.map('map').setView([43.773361, -79.502361], 16);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© Contributors of OpenStreetMap'
 }).addTo(map);
-
+    
 const startMarker = L.circleMarker([0,0], {radius:8, color:'#E24B4A', fillColor:'#E24B4A', fillOpacity:1});
 const endMarker   = L.circleMarker([0,0], {radius:8, color:'#1D9E75', fillColor:'#1D9E75', fillOpacity:1});
 
