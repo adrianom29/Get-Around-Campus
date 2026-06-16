@@ -1,10 +1,10 @@
 import os
-from src.objects import Node, Edge 
+from objects import Node, Edge 
 import networkx as nx
 import heapq
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
-from src.config import CAMPUSES
+from config import CAMPUSES
 
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 CORS(app)
