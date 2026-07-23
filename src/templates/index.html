@@ -23,7 +23,8 @@
             <button onclick="findPath()">Find shortest path</button>
             <button onclick="swapStartAndEnd()">Swap Start ↔ End</button>
             <button onclick="clearPath()">Clear</button>
-            <div id="result"></div>
+            <p id="distance"></p>
+            <p id="time"></p>
         </div>
         <script src="{{ url_for('static', filename='app.js') }}?v={{ app_js_version }}"></script>
     </body>

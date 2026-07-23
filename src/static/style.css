@@ -34,8 +34,8 @@ body { margin: 0;
 }
 #result { 
     font-weight: 500; 
-    margin-top: 8px; 
-    font-size: 13px; 
+    margin-top: 20px; 
+    font-size: 100px; 
 }
 .search-input, #campus-select {
     width: 100%; 

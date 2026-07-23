@@ -74,9 +74,11 @@ async function findPath() {
     const data = await res.json();
     if (pathLayer) map.removeLayer(pathLayer);
     const coords = data.path.map(p => [p.lat, p.lng]);
-    pathLayer = L.polyline(coords, {color:'#1D9E75', weight:5, opacity:0.85}).addTo(map);
+    pathLayer = L.polyline(coords, {color:'#2db2f0', weight:5, opacity:0.85}).addTo(map);
     map.fitBounds(pathLayer.getBounds(), {padding:[40,40]});
-    document.getElementById('result').textContent = `Distance: ${data.distance} m`;
+    document.getElementById('distance').textContent = `Distance: ${data.distance} m`;
+    const time = Math.round(data.distance / 80);
+    document.getElementById('time').textContent = `Time: ${time} mins`;
     startMarker.bringToFront();
     endMarker.bringToFront();
 }
@@ -92,7 +94,8 @@ function clearPath() {
     document.getElementById('search-end').value = '';
     document.getElementById('suggestions-start').style.display = 'none';
     document.getElementById('suggestions-end').style.display = 'none';
-    document.getElementById('result').textContent = '';
+    document.getElementById('distance').textContent = '';
+    document.getElementById('time').textContent = '';
 }
 
 function searchBuildings(query, slot) {
