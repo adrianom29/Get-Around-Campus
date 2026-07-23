@@ -1,5 +1,10 @@
 import os
-from objects import Node, Edge 
+import subprocess
+import hmac
+import hashlib
+import urllib.request
+import urllib.error
+from objects import Node, Edge
 import networkx as nx
 import heapq
 from flask import Flask, jsonify, request, render_template
@@ -8,6 +13,12 @@ from config import CAMPUSES
 
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 CORS(app)
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+GITHUB_WEBHOOK_SECRET = os.environ.get('GITHUB_WEBHOOK_SECRET')
+PA_API_TOKEN = os.environ.get('PA_API_TOKEN')
+PA_USERNAME = os.environ.get('PA_USERNAME')
+PA_DOMAIN = os.environ.get('PA_DOMAIN')
 
 _campus_data = {}   # campus_key -> { "graph": G, "nodes": [...], "edges": [...]}
 
@@ -92,9 +103,18 @@ def getPath(graph, nodes, start_id, end_id):
 def getNearestNode(nodes, lat, lng):
     return min(nodes, key=lambda n: (n.getLat()-lat)**2 + (n.getLng()-lng)**2)
 
+def _asset_version(filename):
+    path = os.path.join(app.static_folder, filename)
+    try:
+        return int(os.path.getmtime(path))
+    except OSError:
+        return 0
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html',
+                            app_js_version=_asset_version('app.js'),
+                            style_css_version=_asset_version('style.css'))
 
 @app.route('/campuses')
 def list_campuses():
@@ -144,6 +164,44 @@ def get_path(campus):
     coords = [{'lat': findNode(data["nodes"], n).getLat(),
                'lng': findNode(data["nodes"], n).getLng()} for n in node_path]
     return jsonify({'path': coords, 'distance': round(distance, 1)})
+
+def _reload_webapp():
+    if not (PA_API_TOKEN and PA_USERNAME and PA_DOMAIN):
+        return False, "PA_API_TOKEN/PA_USERNAME/PA_DOMAIN not set"
+    url = f'https://www.pythonanywhere.com/api/v0/user/{PA_USERNAME}/webapps/{PA_DOMAIN}/reload/'
+    req = urllib.request.Request(url, method='POST', headers={'Authorization': f'Token {PA_API_TOKEN}'})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.status == 200, resp.read().decode()
+    except urllib.error.HTTPError as e:
+        return False, e.read().decode()
+    except urllib.error.URLError as e:
+        return False, str(e)
+
+@app.route('/webhook/deploy', methods=['POST'])
+def deploy_webhook():
+    if not GITHUB_WEBHOOK_SECRET:
+        return jsonify({"error": "webhook not configured"}), 503
+
+    signature = request.headers.get('X-Hub-Signature-256', '')
+    expected = 'sha256=' + hmac.new(GITHUB_WEBHOOK_SECRET.encode(), request.data, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(signature, expected):
+        return jsonify({"error": "invalid signature"}), 403
+
+    if request.headers.get('X-GitHub-Event') != 'push':
+        return jsonify({"status": "ignored"}), 200
+
+    payload = request.get_json(silent=True) or {}
+    if payload.get('ref') and payload['ref'] != 'refs/heads/main':
+        return jsonify({"status": "ignored", "ref": payload.get('ref')}), 200
+
+    pull = subprocess.run(['git', 'pull'], cwd=REPO_ROOT, capture_output=True, text=True, timeout=60)
+    reload_ok, reload_body = _reload_webapp()
+
+    return jsonify({
+        "git_pull": {"returncode": pull.returncode, "stdout": pull.stdout, "stderr": pull.stderr},
+        "reload": {"ok": reload_ok, "body": reload_body},
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

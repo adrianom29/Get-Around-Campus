@@ -3,7 +3,7 @@
     <head>
         <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
         <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ style_css_version }}"/>
     </head>
     <body>
         <div id="map"></div>
@@ -25,6 +25,6 @@
             <button onclick="clearPath()">Clear</button>
             <div id="result"></div>
         </div>
-        <script src="{{ url_for('static', filename='app.js') }}"></script>
+        <script src="{{ url_for('static', filename='app.js') }}?v={{ app_js_version }}"></script>
     </body>
 </html>
