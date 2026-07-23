@@ -3,15 +3,21 @@
 const API = 'https://AdrianoM29.pythonanywhere.com';
 let currentCampus = null;
 let namedNodes = [];
-let startNode = null, endNode = null, pathLayer = null, clickCount = 0;
+let startNode = null, endNode = null, pathLayer = null;
 
 const map = L.map('map').setView([43.773361, -79.502361], 16);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© Contributors of OpenStreetMap'
 }).addTo(map);
-    
-const startMarker = L.circleMarker([0,0], {radius:8, color:'#E24B4A', fillColor:'#E24B4A', fillOpacity:1});
-const endMarker   = L.circleMarker([0,0], {radius:8, color:'#1D9E75', fillColor:'#1D9E75', fillOpacity:1});
+
+const startMarker   = L.circleMarker([0,0], {radius:8, color:'#1D9E75', fillColor:'#1D9E75', fillOpacity:1});    
+
+const finishIcon = L.icon({
+    iconUrl:      '/static/images/finish.png',
+    iconSize:     [30, 30], // size of the icon
+    iconAnchor:   [2, 25], // bottom tip of the flag pole, so it points at the node
+});
+const endMarker = L.marker([0,0], {icon: finishIcon});
 
 async function loadCampuses() {
     const res = await fetch(`${API}/campuses`);
@@ -35,32 +41,31 @@ async function switchCampus(key) {
     const nr = await fetch(`${API}/${key}/named-nodes`);
     namedNodes = await nr.json();
 
-    document.getElementById('search').value = '';
-    document.getElementById('suggestions').style.display = 'none';
 }
 
 map.on('click', async (e) => {
-    if (!currentCampus) return;
+    if (!currentCampus || pathLayer) return;
     const {lat, lng} = e.latlng;
-    const res = await fetch(`${API}/${currentCampus}/nearest?lat=${lat}&lng=${lng}`); 
+    const res = await fetch(`${API}/${currentCampus}/nearest?lat=${lat}&lng=${lng}`);
     const node = await res.json();
     const info = node.name?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`; //${node.id};
-    drawNode(node, info);
+    const slot = (startNode && !endNode) ? 'end' : 'start';
+    drawNode(node, info, slot);
 });
 
-function drawNode(node, info) {
-    if (clickCount % 2 === 0) {
-        if (pathLayer) clearPath();
+function drawNode(node, info, slot) {
+    if (pathLayer) return;
+    if (slot === 'start') {
         startNode = node;
         startMarker.setLatLng([node.lat, node.lng]).addTo(map);
-        document.getElementById('start-label').textContent = `Start: ${info}`;
+        document.getElementById('start-label').textContent = `Start:`;
+        document.getElementById('search-start').value = info;
     } else {
-        if (pathLayer) { clearPath(); drawNode(node, info); return; }
         endNode = node;
         endMarker.setLatLng([node.lat, node.lng]).addTo(map);
-        document.getElementById('end-label').textContent = `End: ${info}`;
+        document.getElementById('end-label').textContent = `End:`;
+        document.getElementById('search-end').value = info;
     }
-    clickCount++;
 }
 
 async function findPath() {
@@ -72,6 +77,8 @@ async function findPath() {
     pathLayer = L.polyline(coords, {color:'#1D9E75', weight:5, opacity:0.85}).addTo(map);
     map.fitBounds(pathLayer.getBounds(), {padding:[40,40]});
     document.getElementById('result').textContent = `Distance: ${data.distance} m`;
+    startMarker.bringToFront();
+    endMarker.bringToFront();
 }
 
 function clearPath() {
@@ -79,41 +86,47 @@ function clearPath() {
     if (map.hasLayer(startMarker)) map.removeLayer(startMarker);
     if (map.hasLayer(endMarker))   map.removeLayer(endMarker);
     startNode = endNode = null;
-    clickCount = 0;
-    document.getElementById('start-label').textContent = 'Start: —';
-    document.getElementById('end-label').textContent   = 'End: —';
-    document.getElementById('result').textContent      = '';
+    document.getElementById('start-label').textContent = 'Start:';
+    document.getElementById('end-label').textContent   = 'End:';
+    document.getElementById('search-start').value = '';
+    document.getElementById('search-end').value = '';
+    document.getElementById('suggestions-start').style.display = 'none';
+    document.getElementById('suggestions-end').style.display = 'none';
+    document.getElementById('result').textContent = '';
 }
 
-function searchBuildings(query) {
-    const box = document.getElementById('suggestions');
+function searchBuildings(query, slot) {
+    const box = document.getElementById(`suggestions-${slot}`);
     if (!query) { box.style.display = 'none'; return; }
     const matches = namedNodes.filter(n => n.name.toLowerCase().includes(query.toLowerCase()));
     if (!matches.length) { box.style.display = 'none'; return; }
     box.innerHTML = matches.map(n =>
-        `<div class="suggestion" onclick="selectBuilding(${n.id})">${n.name}</div>`
+        `<div class="suggestion" onclick="selectBuilding(${n.id}, '${slot}')">${n.name}</div>`
     ).join('');
     box.style.display = 'block';
 }
 
-function selectBuilding(id) {
+function selectBuilding(id, slot) {
+    if (pathLayer) return;
     const node = namedNodes.find(n => n.id === id);
-    document.getElementById('suggestions').style.display = 'none';
-    document.getElementById('search').value = node.name;
-    drawNode(node, node.name);
+    document.getElementById(`suggestions-${slot}`).style.display = 'none';
+    drawNode(node, node.name, slot);
     map.setView([node.lat, node.lng], 18);
 }
 
 function swapStartAndEnd() {
-    if (!startNode || !endNode) return;
+    if (!startNode || !endNode || pathLayer) return;
     const tempNode = endNode;
     const tempText = document.getElementById('end-label').textContent.slice(5);
+    const startText = document.getElementById('start-label').textContent.slice(7);
     endNode = startNode;
     endMarker.setLatLng([startNode.lat, startNode.lng]);
-    document.getElementById('end-label').textContent = `End: ${document.getElementById('start-label').textContent.slice(7)}`;
+    document.getElementById('end-label').textContent = `End: ${startText}`;
+    document.getElementById('search-end').value = startText;
     startNode = tempNode;
     startMarker.setLatLng([tempNode.lat, tempNode.lng]);
     document.getElementById('start-label').textContent = `Start: ${tempText}`;
+    document.getElementById('search-start').value = tempText;
 }
 
 loadCampuses();

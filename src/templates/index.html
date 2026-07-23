@@ -1,29 +1,30 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
-</head>
-<body>
-<div id="map"></div>
-<div id="panel">
-    <p><b>Select</b> a Campus:</p>
-    <select id="campus-select" onchange="switchCampus(this.value)">
-        <option disabled selected>Loading campuses…</option>
-    </select>
-    <p><b>Click map or search</b> to set start, then end</p>
-    <input type="text" id="search" placeholder="Search building…" oninput="searchBuildings(this.value)"/>
-    <div id="suggestions"></div>
-    <p id="start-label">Start: —</p>
-    <p id="end-label">End: —</p>
-    <button onclick="findPath()">Find shortest path</button>
-    <button onclick="swapStartAndEnd()">Swap Start ↔ End</button>
-    <button onclick="clearPath()">Clear</button>
-    <div id="result"></div>
-</div>
-
-<script src="{{ url_for('static', filename='app.js') }}"></script>
-
-</body>
+    <head>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+    </head>
+    <body>
+        <div id="map"></div>
+        <div id="panel">
+            <p><b>Select</b> a Campus:</p>
+            <select id="campus-select" onchange="switchCampus(this.value)">
+                <option disabled selected>Loading campuses…</option>
+            </select>
+            <p><b>Click map or search</b> to set start, then end</p>
+            <hr>
+            <p id="start-label">Start:</p>
+            <input type="text" id="search-start" class="search-input" placeholder="Search start building…" oninput="searchBuildings(this.value, 'start')"/>
+            <div id="suggestions-start" class="suggestions"></div>
+            <p id="end-label">End:</p>
+            <input type="text" id="search-end" class="search-input" placeholder="Search end building…" oninput="searchBuildings(this.value, 'end')"/>
+            <div id="suggestions-end" class="suggestions"></div>
+            <button onclick="findPath()">Find shortest path</button>
+            <button onclick="swapStartAndEnd()">Swap Start ↔ End</button>
+            <button onclick="clearPath()">Clear</button>
+            <div id="result"></div>
+        </div>
+        <script src="{{ url_for('static', filename='app.js') }}"></script>
+    </body>
 </html>
