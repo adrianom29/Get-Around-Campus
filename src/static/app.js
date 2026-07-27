@@ -172,19 +172,5 @@ async function selectUserLocation() {
     drawNode(node, 'Your location', 'start');
 }
 
-function swapStartAndEnd() {
-    if (!startNode || !endNode || pathLayer) return;
-    const tempNode = endNode;
-    const tempText = document.getElementById('end-label').textContent.slice(5);
-    const startText = document.getElementById('start-label').textContent.slice(7);
-    endNode = startNode;
-    endMarker.setLatLng([startNode.lat, startNode.lng]);
-    document.getElementById('end-label').textContent = `End: ${startText}`;
-    document.getElementById('search-end').value = startText;
-    startNode = tempNode;
-    startMarker.setLatLng([tempNode.lat, tempNode.lng]);
-    document.getElementById('start-label').textContent = `Start: ${tempText}`;
-    document.getElementById('search-start').value = tempText;
-}
 
 loadCampuses();
