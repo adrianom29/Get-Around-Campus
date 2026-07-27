@@ -15,7 +15,7 @@ body { margin: 0;
     padding: 16px; 
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.15); 
-    width: 240px;
+    width: 400px;
 }
 #panel p { 
     margin: 6px 0; 
@@ -31,11 +31,6 @@ body { margin: 0;
     border-radius: 8px; 
     cursor: pointer; 
     margin-top: 8px;
-}
-#result { 
-    font-weight: 500; 
-    margin-top: 20px; 
-    font-size: 100px; 
 }
 .search-input, #campus-select {
     width: 100%; 

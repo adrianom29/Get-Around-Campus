@@ -18,6 +18,39 @@ const finishIcon = L.icon({
     iconAnchor:   [2, 25], // bottom tip of the flag pole, so it points at the node
 });
 const endMarker = L.marker([0,0], {icon: finishIcon});
+const userMarker = L.circleMarker([0,0], {radius:7, color:'#ffffff', weight:2, fillColor:'#4285F4', fillOpacity:1});
+
+function getUserLocation() {
+    return new Promise(resolve => {
+        if (!navigator.geolocation) { resolve(null); return; }
+        const timer = setTimeout(() => resolve(null), 10000);
+        navigator.geolocation.getCurrentPosition(
+            pos => { clearTimeout(timer); resolve({lat: pos.coords.latitude, lng: pos.coords.longitude}); },
+            () => { clearTimeout(timer); resolve(null); },
+            {timeout: 8000}
+        );
+    });
+}
+
+function nearestCampusKey(campuses, loc) {
+    return campuses.reduce((best, c) => {
+        const d = (c.center[0]-loc.lat)**2 + (c.center[1]-loc.lng)**2;
+        return d < best.d ? {key: c.key, d} : best;
+    }, {key: campuses[0].key, d: Infinity}).key;
+}
+
+function trackUserLocation() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.watchPosition(
+        pos => {
+            const {latitude: lat, longitude: lng} = pos.coords;
+            userMarker.setLatLng([lat, lng]);
+            if (!map.hasLayer(userMarker)) userMarker.addTo(map);
+        },
+        () => {},
+        {enableHighAccuracy: true, maximumAge: 5000}
+    );
+}
 
 async function loadCampuses() {
     const res = await fetch(`${API}/campuses`);
@@ -26,7 +59,17 @@ async function loadCampuses() {
     sel.innerHTML = campuses.map(c =>
         `<option value="${c.key}">${c.name}</option>`
     ).join('');
-    await switchCampus(campuses[0].key);
+
+    const userLoc = await getUserLocation();
+    const initialKey = userLoc ? nearestCampusKey(campuses, userLoc) : campuses[0].key;
+    sel.value = initialKey;
+    await switchCampus(initialKey);
+
+    if (userLoc) {
+        userMarker.setLatLng([userLoc.lat, userLoc.lng]).addTo(map);
+        map.setView([userLoc.lat, userLoc.lng], 18);
+    }
+    trackUserLocation();
 }
 
 async function switchCampus(key) {
