@@ -67,7 +67,6 @@ async function loadCampuses() {
 
     if (userLoc) {
         userMarker.setLatLng([userLoc.lat, userLoc.lng]).addTo(map);
-        map.setView([userLoc.lat, userLoc.lng], 18);
     }
     trackUserLocation();
 }
@@ -143,12 +142,16 @@ function clearPath() {
 
 function searchBuildings(query, slot) {
     const box = document.getElementById(`suggestions-${slot}`);
-    if (!query) { box.style.display = 'none'; return; }
-    const matches = namedNodes.filter(n => n.name.toLowerCase().includes(query.toLowerCase()));
-    if (!matches.length) { box.style.display = 'none'; return; }
-    box.innerHTML = matches.map(n =>
-        `<div class="suggestion" onclick="selectBuilding(${n.id}, '${slot}')">${n.name}</div>`
-    ).join('');
+    const rows = [];
+    if (!query && slot === 'start' && map.hasLayer(userMarker)) {
+        rows.push(`<div class="suggestion" onclick="selectUserLocation()">Your location</div>`);
+    }
+    if (query) {
+        const matches = namedNodes.filter(n => n.name.toLowerCase().includes(query.toLowerCase()));
+        rows.push(...matches.map(n => `<div class="suggestion" onclick="selectBuilding(${n.id}, '${slot}')">${n.name}</div>`));
+    }
+    if (!rows.length) { box.style.display = 'none'; return; }
+    box.innerHTML = rows.join('');
     box.style.display = 'block';
 }
 
@@ -158,6 +161,15 @@ function selectBuilding(id, slot) {
     document.getElementById(`suggestions-${slot}`).style.display = 'none';
     drawNode(node, node.name, slot);
     map.setView([node.lat, node.lng], 18);
+}
+
+async function selectUserLocation() {
+    if (pathLayer || !currentCampus || !map.hasLayer(userMarker)) return;
+    document.getElementById('suggestions-start').style.display = 'none';
+    const {lat, lng} = userMarker.getLatLng();
+    const res = await fetch(`${API}/${currentCampus}/nearest?lat=${lat}&lng=${lng}`);
+    const node = await res.json();
+    drawNode(node, 'Your location', 'start');
 }
 
 function swapStartAndEnd() {

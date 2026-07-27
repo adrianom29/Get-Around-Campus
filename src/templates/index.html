@@ -15,7 +15,7 @@
             <p><b>Click map or search</b> to set start, then end</p>
             <hr>
             <p id="start-label">Start:</p>
-            <input type="text" id="search-start" class="search-input" placeholder="Search start building…" oninput="searchBuildings(this.value, 'start')"/>
+            <input type="text" id="search-start" class="search-input" placeholder="Search start building or use your location…" oninput="searchBuildings(this.value, 'start')" onfocus="searchBuildings(this.value, 'start')"/>
             <div id="suggestions-start" class="suggestions"></div>
             <p id="end-label">End:</p>
             <input type="text" id="search-end" class="search-input" placeholder="Search end building…" oninput="searchBuildings(this.value, 'end')"/>
@@ -25,6 +25,7 @@
             <button onclick="clearPath()">Clear</button>
             <p id="distance"></p>
             <p id="time"></p>
+            <p class="fineprint">Routes can only be made within selected campus</p>
         </div>
         <script src="{{ url_for('static', filename='app.js') }}?v={{ app_js_version }}"></script>
     </body>
